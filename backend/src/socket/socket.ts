@@ -70,9 +70,13 @@ export const setupSocketHandlers = (io: Server) => {
     
     // WebRTC ICE Candidate
     socket.on('webrtc:ice-candidate', ({ to, candidate }) => {
+      console.log(`🧊 ICE candidate from ${socket.id} to ${to}`); // ✅ Ekle
       const targetUser = userManager.getUser(to);
       if (targetUser) {
+        console.log(`✅ Forwarding ICE to ${targetUser.socketId}`); // ✅ Ekle
         io.to(targetUser.socketId).emit('webrtc:ice-candidate', { candidate });
+      } else {
+        console.log(`❌ Target user ${to} not found!`); // ✅ Ekle
       }
     });
     
