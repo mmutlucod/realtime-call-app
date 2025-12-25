@@ -23,7 +23,7 @@ Push notifications ensure that users never miss a call, even when the app is run
 
 ### Login Screen
 *Enter your username to join the lobby*
-![Login Screen](.assets/screenshots/login.png)
+![Login Screen](./mobile/assets/screenshots/login.png)
 
 ### Lobby
 *See all online users and start a call*
