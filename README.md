@@ -21,21 +21,12 @@ Push notifications ensure that users never miss a call, even when the app is run
 
 ## 📱 Screenshots
 
-### Login Screen
-*Enter your username to join the lobby*
-![Login Screen](./mobile/assets/screenshots/login.png)
-
-### Lobby
-*See all online users and start a call*
-![Lobby Screen](./assets/screenshots/lobby.png)
-
-### Video Call
-*In-call experience with controls*
-![Call Screen](./screenshots/video-chat.png)
-
-### Push Notification
-*Receive incoming call notifications*
-![Notification](./screenshots/push-notification.png)
+<p align="center">
+  <img src="./mobile/assets/screenshots/login.png" width="200" alt="Login Screen">
+  <img src="./mobile/assets/screenshots/lobby.png" width="200" alt="Lobby Screen">
+  <img src="./mobile/assets/screenshots/call.png" width="200" alt="Call Screen">
+  <img src="./mobile/assets/screenshots/notification.png" width="200" alt="Notification">
+</p>
 
 ## 🚀 Getting Started
 
@@ -185,7 +176,3 @@ This project is open source and available under the [MIT License](LICENSE).
 - Expo team for the amazing development platform
 - Socket.IO for real-time signaling
 - Firebase for push notifications
-
----
-
-Made with ❤️ using React Native and WebRTC
