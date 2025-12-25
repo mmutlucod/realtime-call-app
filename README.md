@@ -24,7 +24,7 @@ Push notifications ensure that users never miss a call, even when the app is run
 <p align="center">
   <img src="./mobile/assets/screenshots/login.png" width="200" alt="Login Screen">
   <img src="./mobile/assets/screenshots/lobby.png" width="200" alt="Lobby Screen">
-  <img src="./mobile/assets/screenshots/video-call.png" width="200" alt="Call Screen">
+  <img src="./mobile/assets/screenshots/video-chat.png" width="200" alt="Call Screen">
   <img src="./mobile/assets/screenshots/push-notification.jpeg" width="200" alt="Notification">
 </p>
 
