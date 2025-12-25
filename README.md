@@ -27,7 +27,7 @@ Push notifications ensure that users never miss a call, even when the app is run
 
 ### Lobby
 *See all online users and start a call*
-![Lobby Screen](./screenshots/lobby.png)
+![Lobby Screen](./assets/screenshots/lobby.png)
 
 ### Video Call
 *In-call experience with controls*
