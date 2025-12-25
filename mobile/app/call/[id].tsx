@@ -1,6 +1,5 @@
-// app/call/[id].tsx
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Alert } from 'react-native';
+import React, { useEffect, useState, useMemo } from 'react';
+import { View, Text, StyleSheet, Alert, SafeAreaView } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useCallStore } from '../../src/store/call-store';
 import { socketService } from '../../src/services/socket.service';
@@ -17,68 +16,49 @@ export default function CallScreen() {
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [callDuration, setCallDuration] = useState(0);
   
+  const stableLocalStream = useMemo(() => localStream, [localStream?.id]);
+  const stableRemoteStream = useMemo(() => remoteStream, [remoteStream?.id]);
+  
   useEffect(() => {
-    console.log('🎬 Call screen mounted');
-    
     if (!currentUser || !otherUser) {
-      console.log('❌ No user data, redirecting to lobby');
       router.replace('/lobby');
       return;
     }
     
-    console.log(`📞 Call with ${otherUser.username}, type: ${callType}`);
-    
-    // ✅ 1. Local stream'i al
     if (webRTCService.localStream) {
-      console.log('✅ Setting local stream from service');
       setLocalStream(webRTCService.localStream);
-    } else {
-      console.log('⚠️ No local stream in service');
     }
     
-    // ✅ 2. Remote stream zaten varsa al
     if (webRTCService.remoteStream) {
-      console.log('✅ Remote stream already exists in service, setting it');
       setRemoteStream(webRTCService.remoteStream);
-    } else {
-      console.log('⚠️ No remote stream in service yet');
     }
     
-    // ✅ 3. Remote stream callback'ini ayarla (zaten varsa hemen çağrılır)
     webRTCService.onRemoteStream((stream) => {
-      console.log('📹 Remote stream callback triggered in call screen');
       setRemoteStream(stream);
     });
     
-    // Karşı taraf aramayı kapattı
+    const handleIceCandidate = async ({ candidate }: any) => {
+      await webRTCService.addIceCandidate(candidate);
+    };
+    
+    socketService.on('webrtc:ice-candidate', handleIceCandidate);
+    
     const handleCallEnded = () => {
-      console.log('📴 Call ended by other user');
       handleEndCall(false);
     };
     
     socketService.on('call:ended', handleCallEnded);
     
-    // Call duration timer
     const timer = setInterval(() => {
       setCallDuration((prev) => prev + 1);
     }, 1000);
     
     return () => {
-      console.log('🎬 Call screen unmounting');
       clearInterval(timer);
-      socketService.off('call:ended', handleCallEnded); // ✅ CLEANUP
+      socketService.off('webrtc:ice-candidate', handleIceCandidate);
+      socketService.off('call:ended', handleCallEnded);
     };
   }, []);
-  
-  // Debug render
-  useEffect(() => {
-    console.log('🖼️ Call screen render:', {
-      hasLocalStream: !!localStream,
-      hasRemoteStream: !!remoteStream,
-      localStreamId: localStream?.id,
-      remoteStreamId: remoteStream?.id,
-    });
-  }, [localStream, remoteStream]);
   
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -112,52 +92,40 @@ export default function CallScreen() {
   };
   
   const confirmEndCall = () => {
-    Alert.alert('Aramayı Sonlandır', 'Aramayı sonlandırmak istediğinize emin misiniz?', [
-      { text: 'İptal', style: 'cancel' },
-      { text: 'Sonlandır', style: 'destructive', onPress: () => handleEndCall(true) },
+    Alert.alert('End Call', 'Are you sure you want to end the call?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'End', style: 'destructive', onPress: () => handleEndCall(true) },
     ]);
   };
   
   return (
     <View style={styles.container}>
-      {/* Remote Video (Büyük ekran) */}
-      {remoteStream ? (
-        <>
-          {console.log('✅ Rendering remote video')}
-          <VideoView stream={remoteStream} />
-        </>
+      {stableRemoteStream ? (
+        <VideoView stream={stableRemoteStream} isLocal={false} />
       ) : (
-        <>
-          {console.log('⏳ Waiting for remote stream')}
-          <View style={styles.waitingContainer}>
-            <Text style={styles.waitingEmoji}>⏳</Text>
-            <Text style={styles.waitingText}>Bağlanıyor...</Text>
-          </View>
-        </>
+        <View style={styles.waitingContainer}>
+          <Text style={styles.waitingText}>Connecting...</Text>
+        </View>
       )}
       
-      {/* Local Video (Küçük preview) */}
-      {callType === 'video' && localStream && (
-        <>
-          {console.log('✅ Rendering local video')}
-          <VideoView stream={localStream} isLocal={true} />
-        </>
+      {callType === 'video' && stableLocalStream && (
+        <VideoView stream={stableLocalStream} isLocal={true} />
       )}
       
-      {/* Call Info */}
       <View style={styles.callInfo}>
         <Text style={styles.callerName}>{otherUser?.username}</Text>
         <Text style={styles.callDuration}>{formatDuration(callDuration)}</Text>
       </View>
       
-      {/* Controls */}
-      <CallControls
-        onToggleAudio={handleToggleAudio}
-        onToggleVideo={handleToggleVideo}
-        onSwitchCamera={handleSwitchCamera}
-        onEndCall={confirmEndCall}
-        isVideo={callType === 'video'}
-      />
+      <SafeAreaView style={styles.controlsContainer}>
+        <CallControls
+          onToggleAudio={handleToggleAudio}
+          onToggleVideo={handleToggleVideo}
+          onSwitchCamera={handleSwitchCamera}
+          onEndCall={confirmEndCall}
+          isVideo={callType === 'video'}
+        />
+      </SafeAreaView>
     </View>
   );
 }
@@ -172,10 +140,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#1a1a1a',
-  },
-  waitingEmoji: {
-    fontSize: 80,
-    marginBottom: 20,
   },
   waitingText: {
     fontSize: 20,
@@ -203,5 +167,11 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0,0,0,0.8)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
+  },
+  controlsContainer: {
+    position: 'absolute',
+    bottom: 36,
+    left: 0,
+    right: 0,
   },
 });

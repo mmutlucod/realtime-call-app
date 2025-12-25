@@ -1,29 +1,33 @@
-// app/_layout.tsx
-import { Stack } from 'expo-router';
 import { useEffect } from 'react';
-import { LogBox } from 'react-native';
-
-// WebRTC uyarılarını kapat
-LogBox.ignoreLogs(['new NativeEventEmitter']);
-LogBox.ignoreAllLogs();
+import { Slot, useRouter } from 'expo-router';
+import { pushNotificationService } from '../src/services/push-notification.services';
 
 export default function RootLayout() {
-  return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-        animation: 'slide_from_right',
-      }}
-    >
-      <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen name="lobby" options={{ headerShown: false }} />
-      <Stack.Screen 
-        name="call/[id]" 
-        options={{ 
-          headerShown: false,
-          gestureEnabled: false, // Geri swipe'ı kapat
-        }} 
-      />
-    </Stack>
-  );
+  const router = useRouter();
+  
+  useEffect(() => {
+    const notificationListener = pushNotificationService.addNotificationReceivedListener(
+      (notification) => {
+        console.log('notification received:', notification);
+      }
+    );
+    
+    const responseListener = pushNotificationService.addNotificationResponseReceivedListener(
+      (response) => {
+        console.log('notification tapped:', response);
+        const data = response.notification.request.content.data;
+        
+        if (data.type === 'incoming-call') {
+          router.replace('/lobby');
+        }
+      }
+    );
+    
+    return () => {
+      notificationListener.remove();
+      responseListener.remove();
+    };
+  }, []);
+  
+  return <Slot />;
 }

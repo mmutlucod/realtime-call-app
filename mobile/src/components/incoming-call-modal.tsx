@@ -1,6 +1,6 @@
-// src/components/IncomingCallModal.tsx
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, ActivityIndicator } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useCallStore } from '../store/call-store';
 import { socketService } from '../services/socket.service';
@@ -9,52 +9,62 @@ import { webRTCService } from '../services/webrtc.service';
 export default function IncomingCallModal() {
   const router = useRouter();
   const { currentUser, incomingCall, clearIncomingCall, startCall } = useCallStore();
+  const [isProcessing, setIsProcessing] = useState(false);
   
   if (!incomingCall) return null;
   
-const handleAccept = async () => {
-  try {
-    console.log('📞 Accepting call...');
+  const handleAccept = async () => {
+    if (isProcessing) return;
     
-    const isVideo = incomingCall.callType === 'video';
-    await webRTCService.startLocalStream(isVideo);
-    await webRTCService.initializePeerConnection();
+    setIsProcessing(true);
     
-    webRTCService.onIceCandidate((candidate) => {
-      socketService.emit('webrtc:ice-candidate', {
-        to: incomingCall.from,
-        candidate,
+    try {
+      const callerId = incomingCall.from;
+      const callerInfo = incomingCall.caller;
+      const callTypeInfo = incomingCall.callType;
+      const offerInfo = incomingCall.offer;
+      
+      webRTCService.closeConnection();
+      
+      const isVideo = callTypeInfo === 'video';
+      await webRTCService.startLocalStream(isVideo);
+      
+      webRTCService.onIceCandidate((candidate) => {
+        socketService.emit('webrtc:ice-candidate', {
+          to: callerId,
+          candidate,
+        });
       });
-    });
-    
-    // ✅ Remote stream callback'ini set et (call screen'de de lazım olacak)
-    webRTCService.onRemoteStream((stream) => {
-      console.log('📹 Remote stream received in modal/call screen');
-    });
-    
-    const answer = await webRTCService.createAnswer(incomingCall.offer);
-    
-    socketService.emit('call:accept', {
-      from: incomingCall.from,
-      to: currentUser?.userId,
-      answer,
-    });
-    
-    startCall(incomingCall.caller, incomingCall.callType);
-    clearIncomingCall();
-    
-    // ✅ Answer gönderdikten HEMEN SONRA navigate et
-    console.log('✅ Navigating to call screen...');
-    router.push(`/call/${incomingCall.from}`);
-    
-  } catch (error) {
-    console.error('❌ Accept call error:', error);
-    clearIncomingCall();
-  }
-};
+      
+      webRTCService.onRemoteStream((stream) => {});
+      
+      await webRTCService.initializePeerConnection();
+      const answer = await webRTCService.createAnswer(offerInfo);
+      
+      socketService.emit('call:accept', {
+        from: callerId,
+        to: currentUser?.userId,
+        answer,
+      });
+      
+      startCall(callerInfo, callTypeInfo);
+      router.replace(`/call/${callerId}`);
+      
+      setTimeout(() => {
+        clearIncomingCall();
+        setIsProcessing(false);
+      }, 200);
+      
+    } catch (error) {
+      console.error('Accept call error:', error);
+      clearIncomingCall();
+      setIsProcessing(false);
+    }
+  };
   
   const handleReject = () => {
-    console.log('❌ Rejecting call');
+    if (isProcessing) return;
+    
     socketService.emit('call:reject', {
       from: incomingCall.from,
       to: currentUser?.userId,
@@ -66,22 +76,54 @@ const handleAccept = async () => {
     <Modal transparent animationType="fade" visible={true}>
       <View style={styles.overlay}>
         <View style={styles.modal}>
-          <Text style={styles.title}>Gelen Arama</Text>
-          <Text style={styles.caller}>{incomingCall.caller.username}</Text>
-          <Text style={styles.callType}>
-            {incomingCall.callType === 'video' ? '📹 Görüntülü' : '🎤 Sesli'} Arama
-          </Text>
-          
-          <View style={styles.buttons}>
-            <TouchableOpacity style={styles.rejectButton} onPress={handleReject}>
-              <Text style={styles.buttonText}>❌</Text>
-              <Text style={styles.buttonLabel}>Reddet</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.acceptButton} onPress={handleAccept}>
-              <Text style={styles.buttonText}>✅</Text>
-              <Text style={styles.buttonLabel}>Kabul Et</Text>
-            </TouchableOpacity>
+          <View style={styles.avatarContainer}>
+            <View style={styles.avatarCircle}>
+              <Text style={styles.avatarText}>
+                {incomingCall.caller.username.charAt(0).toUpperCase()}
+              </Text>
+            </View>
+            <View style={styles.pulseRing} />
           </View>
+          
+          <Text style={styles.caller}>{incomingCall.caller.username}</Text>
+          
+          <View style={styles.callTypeContainer}>
+            <Ionicons 
+              name={incomingCall.callType === 'video' ? 'videocam' : 'call'} 
+              size={20} 
+              color="#888" 
+            />
+            <Text style={styles.callType}>
+              {incomingCall.callType === 'video' ? 'Video Call' : 'Voice Call'}
+            </Text>
+          </View>
+          
+          {isProcessing ? (
+            <View style={styles.processingContainer}>
+              <ActivityIndicator size="large" color="#4CAF50" />
+              <Text style={styles.processingText}>Connecting...</Text>
+            </View>
+          ) : (
+            <View style={styles.buttons}>
+              <TouchableOpacity 
+                style={styles.rejectButton} 
+                onPress={handleReject}
+                disabled={isProcessing}
+              >
+                <Ionicons name="close" size={32} color="#fff" />
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.acceptButton} 
+                onPress={handleAccept}
+                disabled={isProcessing}
+              >
+                <Ionicons name="call" size={32} color="#fff" />
+              </TouchableOpacity>
+            </View>
+          )}
+          
+          <Text style={styles.subtitle}>Incoming Call</Text>
         </View>
       </View>
     </Modal>
@@ -91,61 +133,103 @@ const handleAccept = async () => {
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.95)',
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   modal: {
-    backgroundColor: '#2a2a2a',
-    borderRadius: 20,
-    padding: 30,
+    backgroundColor: '#1a1a1a',
+    borderRadius: 30,
+    padding: 40,
     width: '85%',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
-  title: {
-    fontSize: 20,
-    fontWeight: '600',
+  avatarContainer: {
+    position: 'relative',
+    marginBottom: 25,
+  },
+  avatarCircle: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#2196F3',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: '#fff',
+  },
+  avatarText: {
+    fontSize: 42,
+    fontWeight: 'bold',
     color: '#fff',
-    marginBottom: 15,
+  },
+  pulseRing: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 2,
+    borderColor: '#4CAF50',
+    opacity: 0.6,
   },
   caller: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
-    color: '#4CAF50',
+    color: '#fff',
     marginBottom: 10,
   },
-  callType: {
-    fontSize: 18,
-    color: '#aaa',
+  callTypeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     marginBottom: 40,
+  },
+  callType: {
+    fontSize: 16,
+    color: '#888',
   },
   buttons: {
     flexDirection: 'row',
-    gap: 30,
+    gap: 40,
+    marginBottom: 20,
   },
   acceptButton: {
     backgroundColor: '#4CAF50',
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(76, 175, 80, 0.3)',
   },
   rejectButton: {
     backgroundColor: '#f44336',
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(244, 67, 54, 0.3)',
   },
-  buttonText: {
-    fontSize: 32,
+  subtitle: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
-  buttonLabel: {
-    color: '#fff',
-    fontSize: 12,
-    marginTop: 5,
+  processingContainer: {
+    alignItems: 'center',
+    paddingVertical: 30,
+  },
+  processingText: {
+    color: '#4CAF50',
+    fontSize: 16,
+    marginTop: 15,
     fontWeight: '600',
   },
 });

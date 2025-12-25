@@ -26,18 +26,34 @@ npm-debug.*
 yarn-debug.*
 yarn-error.*
 
-# macOS
+# macOS / Windows
 .DS_Store
-*.pem
+Thumbs.db
 
-# local env files
+# Local env files
+.env
 .env*.local
 
-# typescript
+# TypeScript
 *.tsbuildinfo
 
-app-example
+# Example / temp
+app-example/
 
-# generated native folders
-/ios
-/android
+# Generated native folders (Expo managed workflow)
+ios/
+android/
+
+# Firebase
+google-services.json
+GoogleService-Info.plist
+firebase-adminsdk-*.json
+
+# PEM / certs
+*.pem
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

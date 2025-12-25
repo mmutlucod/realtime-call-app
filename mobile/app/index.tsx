@@ -1,4 +1,3 @@
-// app/index.tsx
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -9,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useCallStore } from '../src/store/call-store';
 
@@ -17,7 +17,6 @@ export default function LoginScreen() {
   const router = useRouter();
   const { setCurrentUser, currentUser } = useCallStore();
   
-  // ✅ İLK MOUNT'TA BİR KEZ KONTROL ET
   useEffect(() => {
     const checkUser = async () => {
       if (currentUser) {
@@ -25,14 +24,13 @@ export default function LoginScreen() {
       }
     };
     checkUser();
-  }, []); // ❗ Dependency array BOŞ - sadece ilk renderda çalışır
+  }, []);
   
   const handleJoin = () => {
     if (username.trim()) {
       const userId = Date.now().toString();
       const newUser = { userId, username: username.trim() };
       setCurrentUser(newUser);
-      // ✅ Direkt navigate et, useEffect'e güvenme
       router.push('/lobby');
     }
   };
@@ -43,13 +41,15 @@ export default function LoginScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={styles.content}>
-        <Text style={styles.emoji}>📹</Text>
+        <View style={styles.iconContainer}>
+          <Ionicons name="videocam" size={80} color="#2196F3" />
+        </View>
         <Text style={styles.title}>Video Call App</Text>
-        <Text style={styles.subtitle}>Sesli ve görüntülü arama yapın</Text>
+        <Text style={styles.subtitle}>Make voice and video calls</Text>
         
         <TextInput
           style={styles.input}
-          placeholder="Adınızı girin"
+          placeholder="Enter your name"
           placeholderTextColor="#888"
           value={username}
           onChangeText={setUsername}
@@ -63,7 +63,7 @@ export default function LoginScreen() {
           onPress={handleJoin}
           disabled={!username.trim()}
         >
-          <Text style={styles.buttonText}>Katıl</Text>
+          <Text style={styles.buttonText}>Join</Text>
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -81,8 +81,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
   },
-  emoji: {
-    fontSize: 80,
+  iconContainer: {
     marginBottom: 20,
   },
   title: {

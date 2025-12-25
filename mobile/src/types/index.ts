@@ -1,4 +1,3 @@
-// src/types/index.ts
 export interface User {
   socketId: string;
   userId: string;

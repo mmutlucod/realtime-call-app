@@ -1,15 +1,12 @@
-// src/services/socket.service.ts
 import { io, Socket } from 'socket.io-client';
 
-// ⚠️ KENDİ LOCAL IP ADRESİNİ YAZ! (cmd'de ipconfig yaz, IPv4 adresini kopyala)
-const SOCKET_URL = 'http://192.168.1.113:3000'; // <-- BURAYA KENDİ IP'NI YAZ
+const SOCKET_URL = process.env.EXPO_PUBLIC_SOCKET_URL || 'http://localhost:3000';
 
 class SocketService {
   private socket: Socket | null = null;
   
   connect(userId: string, username: string): Socket {
     if (this.socket?.connected) {
-      console.log('⚠️ Already connected');
       return this.socket;
     }
     
@@ -21,16 +18,7 @@ class SocketService {
     });
     
     this.socket.on('connect', () => {
-      console.log('✅ Socket connected:', this.socket?.id);
       this.socket?.emit('user:join', { userId, username });
-    });
-    
-    this.socket.on('connect_error', (error) => {
-      console.error('❌ Connection error:', error);
-    });
-    
-    this.socket.on('disconnect', (reason) => {
-      console.log('❌ Socket disconnected:', reason);
     });
     
     return this.socket;
@@ -40,16 +28,11 @@ class SocketService {
     if (this.socket) {
       this.socket.disconnect();
       this.socket = null;
-      console.log('🔌 Socket disconnected manually');
     }
   }
   
   emit(event: string, data: any) {
-    if (this.socket?.connected) {
-      this.socket.emit(event, data);
-    } else {
-      console.error('❌ Socket not connected, cannot emit:', event);
-    }
+    this.socket?.emit(event, data);
   }
   
   on(event: string, callback: (data: any) => void) {

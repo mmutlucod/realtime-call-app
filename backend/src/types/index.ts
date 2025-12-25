@@ -3,6 +3,7 @@ export interface User {
   userId: string;
   username: string;
   isInCall: boolean;
+   pushToken?: string;
 }
 
 export interface CallOffer {

@@ -1,5 +1,4 @@
-// src/components/VideoView.tsx
-import React from 'react';
+import React, { useEffect, useState, memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { RTCView, MediaStream } from 'react-native-webrtc';
 
@@ -8,13 +7,31 @@ interface VideoViewProps {
   isLocal?: boolean;
 }
 
-export default function VideoView({ stream, isLocal = false }: VideoViewProps) {
-  if (!stream) return null;
+function VideoView({ stream, isLocal = false }: VideoViewProps) {
+  const [streamURL, setStreamURL] = useState<string>('');
+  
+  useEffect(() => {
+    if (!stream) {
+      setStreamURL('');
+      return;
+    }
+    
+    const url = stream.toURL();
+    setStreamURL(url);
+    
+    return () => {
+      setStreamURL('');
+    };
+  }, [stream?.id, isLocal]); 
+  
+  if (!stream || !streamURL) {
+    return null;
+  }
   
   return (
     <View style={[styles.container, isLocal && styles.localContainer]}>
       <RTCView
-        streamURL={stream.toURL()}
+        streamURL={streamURL}
         style={styles.video}
         objectFit="cover"
         mirror={isLocal}
@@ -23,6 +40,11 @@ export default function VideoView({ stream, isLocal = false }: VideoViewProps) {
     </View>
   );
 }
+
+export default memo(VideoView, (prevProps, nextProps) => {
+  return prevProps.stream?.id === nextProps.stream?.id && 
+         prevProps.isLocal === nextProps.isLocal;
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -35,10 +57,6 @@ const styles = StyleSheet.create({
     right: 20,
     width: 120,
     height: 160,
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: '#fff',
     zIndex: 10,
   },
   video: {

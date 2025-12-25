@@ -1,6 +1,6 @@
-// src/components/CallControls.tsx
 import React, { useState } from 'react';
-import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 interface CallControlsProps {
   onToggleAudio: () => void;
@@ -36,7 +36,11 @@ export default function CallControls({
         style={[styles.button, !isAudioOn && styles.buttonOff]}
         onPress={handleToggleAudio}
       >
-        <Text style={styles.icon}>{isAudioOn ? '🎤' : '🔇'}</Text>
+        <Ionicons 
+          name={isAudioOn ? 'mic' : 'mic-off'} 
+          size={26} 
+          color={isAudioOn ? '#4CAF50' : '#fff'} 
+        />
       </TouchableOpacity>
       
       {isVideo && (
@@ -45,17 +49,21 @@ export default function CallControls({
             style={[styles.button, !isVideoOn && styles.buttonOff]}
             onPress={handleToggleVideo}
           >
-            <Text style={styles.icon}>{isVideoOn ? '📹' : '📵'}</Text>
+            <Ionicons 
+              name={isVideoOn ? 'videocam' : 'videocam-off'} 
+              size={26} 
+              color={isVideoOn ? '#2196F3' : '#fff'} 
+            />
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.button} onPress={onSwitchCamera}>
-            <Text style={styles.icon}>🔄</Text>
+            <Ionicons name="camera-reverse-outline" size={26} color="#fff" />
           </TouchableOpacity>
         </>
       )}
       
       <TouchableOpacity style={styles.endButton} onPress={onEndCall}>
-        <Text style={styles.icon}>📞</Text>
+        <Ionicons name="close" size={32} color="#fff" />
       </TouchableOpacity>
     </View>
   );
@@ -63,37 +71,35 @@ export default function CallControls({
 
 const styles = StyleSheet.create({
   container: {
-    position: 'absolute',
-    bottom: 40,
-    left: 0,
-    right: 0,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     gap: 20,
     paddingHorizontal: 20,
+    paddingVertical: 20,
   },
   button: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   buttonOff: {
-    backgroundColor: 'rgba(244,67,54,0.8)',
+    backgroundColor: 'rgba(244, 67, 54, 0.5)',
+    borderColor: 'rgba(244, 67, 54, 0.4)',
   },
   endButton: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#f44336',
+    backgroundColor: 'rgba(244, 67, 54, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
-    transform: [{ rotate: '135deg' }],
-  },
-  icon: {
-    fontSize: 28,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
 });

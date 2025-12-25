@@ -1,11 +1,10 @@
 import { Server, Socket } from 'socket.io';
 import { userManager } from './user-manager';
+import { pushNotificationService } from '../services/push-notification';
 
 export const setupSocketHandlers = (io: Server) => {
   io.on('connection', (socket: Socket) => {
-    console.log('🔌 Socket connected:', socket.id);
-    
-    // Kullanıcı lobby'e katıldı
+    console.log('socket connected:', socket.id);
     socket.on('user:join', ({ userId, username }) => {
       userManager.addUser({
         socketId: socket.id,
@@ -14,27 +13,36 @@ export const setupSocketHandlers = (io: Server) => {
         isInCall: false
       });
       
-      // Tüm kullanıcılara güncel listeyi gönder
       io.emit('users:list', userManager.getAvailableUsers());
     });
-    
-    // Arama başlatma
-    socket.on('call:initiate', ({ from, to, callType, offer }) => {
-      console.log(`📞 Call from ${from} to ${to}`);
+    socket.on('user:register-push-token', ({ userId, pushToken }) => {
+      userManager.updatePushToken(userId, pushToken);
+    })
+    socket.on('call:initiate', async ({ from, to, callType, offer }) => {
+      console.log(`call from ${from} to ${to}`);
       const targetUser = userManager.getUser(to);
+      const caller = userManager.getUser(from);
+      
       if (targetUser && !targetUser.isInCall) {
         io.to(targetUser.socketId).emit('call:incoming', {
           from,
           callType,
           offer,
-          caller: userManager.getUser(from)
+          caller: caller
         });
+        
+        if (targetUser.pushToken && caller) {
+          await pushNotificationService.sendCallNotification(
+            targetUser.pushToken,
+            caller.username,
+            callType
+          );
+        }
       }
     });
     
-    // Aramayı kabul et
     socket.on('call:accept', ({ from, to, answer }) => {
-      console.log(`✅ Call accepted: ${from} <-> ${to}`);
+      console.log(`call accepted: ${from} <-> ${to}`);
       const caller = userManager.getUser(from);
       if (caller) {
         userManager.setUserInCall(from, true);
@@ -45,16 +53,13 @@ export const setupSocketHandlers = (io: Server) => {
       }
     });
     
-    // Aramayı reddet
     socket.on('call:reject', ({ from }) => {
-      console.log(`❌ Call rejected by user`);
+      console.log(`call rejected by user`);
       const caller = userManager.getUser(from);
       if (caller) {
         io.to(caller.socketId).emit('call:rejected');
       }
     });
-    
-    // Arama bitti
     socket.on('call:end', ({ userId, otherUserId }) => {
       console.log(`📴 Call ended: ${userId} <-> ${otherUserId}`);
       userManager.setUserInCall(userId, false);
@@ -67,20 +72,13 @@ export const setupSocketHandlers = (io: Server) => {
       
       io.emit('users:list', userManager.getAvailableUsers());
     });
-    
-    // WebRTC ICE Candidate
     socket.on('webrtc:ice-candidate', ({ to, candidate }) => {
-      console.log(`🧊 ICE candidate from ${socket.id} to ${to}`); // ✅ Ekle
       const targetUser = userManager.getUser(to);
       if (targetUser) {
-        console.log(`✅ Forwarding ICE to ${targetUser.socketId}`); // ✅ Ekle
         io.to(targetUser.socketId).emit('webrtc:ice-candidate', { candidate });
-      } else {
-        console.log(`❌ Target user ${to} not found!`); // ✅ Ekle
       }
     });
-    
-    // Disconnect
+
     socket.on('disconnect', () => {
       const user = userManager.getUserBySocketId(socket.id);
       if (user) {

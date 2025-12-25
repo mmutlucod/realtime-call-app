@@ -1,22 +1,17 @@
-// src/store/callStore.ts
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User, IncomingCall, CurrentUser, CallType } from '../types';
 
 interface CallStore {
-  // User info
+
   currentUser: CurrentUser | null;
   onlineUsers: User[];
   
-  // Call state
   isInCall: boolean;
   callType: CallType | null;
   otherUser: User | null;
   
-  // Incoming call
   incomingCall: IncomingCall | null;
-  
-  // Actions
   setCurrentUser: (user: CurrentUser) => void;
   setOnlineUsers: (users: User[]) => void;
   startCall: (user: User, callType: CallType) => void;
