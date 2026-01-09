@@ -175,4 +175,4 @@ This project is open source and available under the [MIT License](LICENSE).
 - WebRTC for enabling peer-to-peer communication
 - Expo team for the amazing development platform
 - Socket.IO for real-time signaling
-- Firebase for push notifications
+- Firebase for push notifications 
